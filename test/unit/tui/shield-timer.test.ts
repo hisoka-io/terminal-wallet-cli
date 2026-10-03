@@ -12,11 +12,16 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { POI_SHIELD_PENDING_SEC } from "@railgun-community/shared-models";
+import {
+  NetworkName,
+  POI_SHIELD_PENDING_SEC,
+  POI_SHIELD_PENDING_SEC_TEST_NET,
+} from "@railgun-community/shared-models";
 import {
   formatRemaining,
   nextShieldMaturity,
   pendingNote,
+  shieldPendingSec,
 } from "../../../src/tui/format/shield-timer";
 import { CoreHistoryItem } from "../../../src/core/history";
 
@@ -154,4 +159,18 @@ test("the countdown is computed from the current render's history", () => {
     !/nextShieldMaturity\(history,/.test(entry),
     "reading the mirrored copy makes the countdown one render stale",
   );
+});
+
+test("a testnet shield waits a minute, a mainnet shield an hour", () => {
+  assert.equal(POI_SHIELD_PENDING_SEC_TEST_NET, 60);
+  assert.equal(shieldPendingSec(NetworkName.EthereumSepolia), 60);
+  assert.equal(shieldPendingSec(NetworkName.Ethereum), 3600);
+  const sepolia = shieldPendingSec(NetworkName.EthereumSepolia);
+  assert.equal(nextShieldMaturity([shield(20)], NOW, sepolia)?.remainingSec, 40);
+  assert.equal(nextShieldMaturity([shield(90)], NOW, sepolia), undefined);
+});
+
+test("the deck counts down with the wait of the network it shows", () => {
+  const entry = readFileSync(resolve(process.cwd(), "src/tui/entry.ts"), "utf-8");
+  assert.match(entry, /nextShieldMaturity\(s\.history,[^;]*shieldPendingSec\(s\.network\)\)/);
 });

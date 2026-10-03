@@ -90,3 +90,22 @@ release-1.0.0-linux.tar.gz: OK
 
 ##### All Files:
 - Use `sha256sum --check SHA256SUMS.sha`
+
+<hr>
+
+# Raven POI (optional)
+
+An optional POI node interface backed by [Raven](https://github.com/hisoka-io/raven): the wallet answers
+POI status on the device and fetches POI merkle proofs from a Raven node by PIR (private information
+retrieval). It is off by default; off or absent, the wallet runs the stock POI node interface.
+
+To try it, build as in [docs/raven-poi.md](docs/raven-poi.md#build), then start from an example config and run
+the selftest:
+
+```sh
+cp twallet.config.mainnet.example.json twallet.config.json   # or twallet.config.sepolia.example.json
+node dist/main.js --selftest
+```
+
+A pass ends with `5/5 checks passed`. Configuration, request routing and the wire log are in
+[docs/raven-poi.md](docs/raven-poi.md).

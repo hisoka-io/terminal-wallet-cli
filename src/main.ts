@@ -5,6 +5,8 @@
  *
  *   terminal-wallet --selftest    no wallet, no password, safe to automate
  *   terminal-wallet --status      full boot + state dump (prompts once)
+ *   terminal-wallet --export-commitments <file>
+ *                                 full boot, then the wallets' blinded commitments
  *   terminal-wallet               the deck
  *
  * `clearConsoleBuffer()` and `setConsoleTitle()` write ANSI escapes to stdout,
@@ -21,6 +23,9 @@ import { createLogger } from "./platform/logger";
 const log = createLogger("main");
 
 const main = async () => {
+  // Every file and directory the wallet creates is owner-only, the engine
+  // database's own files included, which native code creates.
+  process.umask(0o077);
   const argv = process.argv.slice(2);
 
   // Before anything that can fail, so a crash during boot is reported and torn
@@ -32,7 +37,7 @@ const main = async () => {
   // The diagnostic modes are explicit. They stay available now the deck is the
   // default, because "is it the wallet or the network" is much easier to answer
   // from a state dump than from a rendered screen.
-  if (argv.includes("--selftest") || argv.includes("--status")) {
+  if (["--selftest", "--status", "--export-commitments"].some((m) => argv.includes(m))) {
     process.exit(await runDiagnostic(argv));
   }
 

@@ -30,7 +30,7 @@ const keychainDir = (basePath: string) => path.join(process.cwd(), basePath);
  */
 const atomicWrite = (filePath: string, data: string) => {
   const tmp = `${filePath}.tmp`;
-  const handle = fs.openSync(tmp, "w");
+  const handle = fs.openSync(tmp, "w", 0o600);
   try {
     fs.writeFileSync(handle, data, "utf-8");
     fs.fsyncSync(handle);
@@ -46,7 +46,7 @@ export const saveKeychainFile = (
   extension = ".zKey",
 ) => {
   const dir = keychainDir(basePath);
-  fs.mkdirSync(dir, { recursive: true });
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   const filePath = path.join(dir, `${cacheFile.name}${extension}`);
   atomicWrite(filePath, JSON.stringify(cacheFile, null, 4));
 };
@@ -68,7 +68,7 @@ export const getRailgunKeychains = async (
   extension = ".zKey",
 ): Promise<KeychainFile[]> => {
   const dir = keychainDir(basePath);
-  await fs.promises.mkdir(dir, { recursive: true });
+  await fs.promises.mkdir(dir, { recursive: true, mode: 0o700 });
 
   const entries = await fs.promises.readdir(dir);
   const found: KeychainFile[] = [];

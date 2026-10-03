@@ -34,7 +34,7 @@ import {
 } from "./format/deck";
 import { formatHistoryRows } from "./format/history";
 import { syncTreeLine } from "./format/dashboard";
-import { nextShieldMaturity, pendingNote } from "./format/shield-timer";
+import { nextShieldMaturity, pendingNote, shieldPendingSec } from "./format/shield-timer";
 import {
   buildPortfolioRows,
   groupPrivateByToken,
@@ -451,15 +451,19 @@ export const runDeck = async (): Promise<void> => {
       s.privateUSD,
       s.publicUSD,
       { tag, publicRow, privHeader, privBucket, nftRow },
-      // A shield is pending for an hour. The bucket says only that funds are
-      // waiting, which reads as indefinite; history has the timestamps.
+      // A shield is pending for an hour (a minute on a testnet). The bucket says
+      // only that funds are waiting, which reads as indefinite; history has the
+      // timestamps.
       //
       // From `s`, not the `history` this render is about to update. Read from
       // the module variable it was one render stale — the countdown could only
       // appear on the render AFTER the shield reached history, and if nothing
       // else changed there was no such render, so it never appeared at all.
       (summary) =>
-        pendingNote(summary, nextShieldMaturity(s.history, Math.floor(Date.now() / 1000))),
+        pendingNote(
+          summary,
+          nextShieldMaturity(s.history, Math.floor(Date.now() / 1000), shieldPendingSec(s.network)),
+        ),
       s.privateNFTs,
     );
     const empty =

@@ -316,12 +316,7 @@ export const getProvedPrivateTransaction = async (
       sendWithPublicWallet,
       overallBatchMinGasPrice,
       progressCallback,
-    )
-      .catch((err) => {
-        log.error("We errored out");
-      })
-      .finally(() => {
-      });
+    );
     const proofEndTime = Date.now();
     const proofTimeElapsed = (proofEndTime - proofStartTime) / 1000;
     log.info(`Proof Generation Took ${proofTimeElapsed}s`);
@@ -341,8 +336,8 @@ export const getProvedPrivateTransaction = async (
       );
     return { transaction, nullifiers, preTransactionPOIsPerTxidLeafPerList };
   } catch (err) {
-    const error = err as Error;
-    log.error(error.message);
+    // The error itself, with its stack: a proof failure here is the only record of why.
+    log.error("private transfer proof or populate failed", err);
   }
 };
 

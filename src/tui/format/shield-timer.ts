@@ -1,7 +1,8 @@
 /**
  * When shielded funds become spendable.
  *
- * A shield sits in the ShieldPending bucket for an hour before it can be spent.
+ * A shield sits in the ShieldPending bucket for an hour (a minute on a testnet)
+ * before it can be spent.
  * The bucket says *that* funds are waiting; it carries no clock, so "shielding"
  * with no other information reads as indefinite — the one question worth
  * answering is how much longer.
@@ -13,7 +14,12 @@
  * Approximate by construction, and only in the safe direction: history that has
  * not caught up yet yields no countdown rather than a wrong one.
  */
-import { POI_SHIELD_PENDING_SEC } from "@railgun-community/shared-models";
+import {
+  NETWORK_CONFIG,
+  NetworkName,
+  POI_SHIELD_PENDING_SEC,
+  POI_SHIELD_PENDING_SEC_TEST_NET,
+} from "@railgun-community/shared-models";
 import { CoreHistoryItem } from "../../core/history";
 
 export interface ShieldCountdown {
@@ -22,6 +28,12 @@ export interface ShieldCountdown {
   /** Whole seconds remaining; never negative. */
   remainingSec: number;
 }
+
+/** The shield wait on `network`, as the POI node applies it. */
+export const shieldPendingSec = (network: string): number =>
+  NETWORK_CONFIG[network as NetworkName]?.isTestnet === true
+    ? POI_SHIELD_PENDING_SEC_TEST_NET
+    : POI_SHIELD_PENDING_SEC;
 
 /**
  * The next shield to mature, from history. `now` is unix seconds.
@@ -33,8 +45,9 @@ export interface ShieldCountdown {
 export const nextShieldMaturity = (
   items: CoreHistoryItem[],
   now: number,
+  pendingSec: number = POI_SHIELD_PENDING_SEC,
 ): ShieldCountdown | undefined => {
-  const windowStart = now - POI_SHIELD_PENDING_SEC;
+  const windowStart = now - pendingSec;
   const pending = items
     .filter(
       (item) =>
@@ -50,7 +63,7 @@ export const nextShieldMaturity = (
   if (!pending.length) return undefined;
 
   const oldest = Math.min(...pending);
-  const readyAt = oldest + POI_SHIELD_PENDING_SEC;
+  const readyAt = oldest + pendingSec;
   return { readyAt, remainingSec: Math.max(0, Math.ceil(readyAt - now)) };
 };
 

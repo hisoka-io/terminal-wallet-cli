@@ -30,3 +30,7 @@ twallet.secrets.json
 # Durable diagnostic log — session-local, never committed.
 terminal-wallet.log
 terminal-wallet.log.1
+
+# Raven POI list index and submitted-proof records, and the Raven wire log
+.raven-poi
+raven-wire.jsonl
