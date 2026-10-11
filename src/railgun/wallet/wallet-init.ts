@@ -40,6 +40,7 @@ import { getSaltedPassword, confirmPassword } from "./wallet-password";
 
 import { computePasswordHash, getIV } from "../../platform/crypto";
 import configDefaults from "../../config/config-defaults";
+import { configuredDefaultNetwork } from "../../config/config-manager";
 import { createLogger } from "../../platform/logger";
 
 const log = createLogger("wallet-init");
@@ -241,6 +242,15 @@ export const initRailgunWallet = async (): Promise<
   await processSafeExit(1);
 };
 
+/**
+ * A keychain that has never switched networks holds none. It boots on `defaultNetwork`, and keeps
+ * it, so the signer and a wallet switch read the network the engine loaded.
+ */
+export const bootNetwork = (keyChain: KeychainFile): NetworkName => {
+  keyChain.currentNetwork ??= configuredDefaultNetwork() ?? configDefaults.engine.defaultChain;
+  return keyChain.currentNetwork;
+};
+
 export const initializeWalletSystems = async () => {
   try {
     await initRailgunEngine();
@@ -264,8 +274,7 @@ export const initializeWalletSystems = async () => {
   setOnTXIDMerkletreeScanCallback(txidMerkletreeScanCallback);
   setOnWalletPOIProofProgressCallback(poiScanCallback);
 
-  const currentNetwork =
-    walletManager.keyChain.currentNetwork ?? NetworkName.Ethereum;
+  const currentNetwork = bootNetwork(walletManager.keyChain);
 
   walletManager.saltedPassword = walletManager.keyChain.salt;
   let wallet;

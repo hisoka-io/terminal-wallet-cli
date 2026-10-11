@@ -35,6 +35,17 @@ const POSIEDON_HASH_WASM = Path.join(
 );
 const POSIEDON_HASH_WASM_BUILD = Path.join(BUILD_DIR, "index.node");
 
+// The Raven PIR client reads its .wasm from its own folder as it loads. In the
+// bundle that folder is the bundle's, so the file ships beside it.
+const RAVEN_WASM_NAME = "raven_inspire_client_wasm_bg.wasm";
+const RAVEN_WASM = Path.join(
+  BUILD_NODE_MODULES,
+  "@hisoka-io",
+  "raven-inspire-client-wasm",
+  RAVEN_WASM_NAME,
+);
+const RAVEN_WASM_BUILD = Path.join(BUILD_DIR, RAVEN_WASM_NAME);
+
 const NATIVE_TWINS = {
   "@railgun-community/poseidon-hash-wasm": {
     rsjs: "@railgun-community/poseidon-hash-rsjs",
@@ -78,6 +89,7 @@ const preserveNodeModules = [
     "index.node",
   ),
   POSIEDON_HASH_WASM_BUILD,
+  RAVEN_WASM_BUILD,
 ];
 
 // Whole directories that must survive, not single files.
@@ -131,6 +143,7 @@ const isPreserved = (path) =>
   FSE.copySync(SOURCE_NODE_MODULES, BUILD_NODE_MODULES);
   FSE.copySync(SOURCE_PACKAGE_JSON, BUILD_PACKAGE_JSON);
   FSE.copySync(POSIEDON_HASH_WASM, POSIEDON_HASH_WASM_BUILD);
+  FSE.copySync(RAVEN_WASM, RAVEN_WASM_BUILD);
 
   // Apply patches to dependencies so they work with the bundled version
   console.log("Applying patches...");

@@ -1,0 +1,30 @@
+{
+  "defaultNetwork": "Ethereum",
+  "providers": {
+    "Ethereum": [
+      "https://mainnet.gateway.tenderly.co",
+      "https://rpc.mevblocker.io"
+    ]
+  },
+  "poiNodeUrls": ["https://ppoi.fdi.network"],
+  "raven": {
+    "enabled": true,
+    "wireLog": "raven-wire.jsonl",
+    "chains": [
+      {
+        "network": "Ethereum",
+        "endpoint": "https://raven-mainnet-production.up.railway.app",
+        "aggregator": "https://ppoi.fdi.network",
+        "pathInstances": [
+          "ppoi-paths-ofac-0",
+          "ppoi-paths-ofac-1",
+          "ppoi-paths-ofac-2",
+          "ppoi-paths-ofac-3",
+          "ppoi-paths-ofac-4",
+          "ppoi-paths-ofac-5",
+          "ppoi-paths-ofac-6"
+        ]
+      }
+    ]
+  }
+}

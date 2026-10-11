@@ -19,6 +19,7 @@ import {
   isDefined,
   removeUndefineds,
 } from "@railgun-community/shared-models";
+import fs from "fs";
 import { groth16 } from "snarkjs";
 import configDefaults from "../../config/config-defaults";
 import LevelDOWN from "leveldown";
@@ -29,6 +30,7 @@ import { getProviderObjectFromURL } from "../../models/network-models";
 import { walletManager } from "../wallet/wallet-manager";
 import { saveKeychainFile } from "../wallet/wallet-cache";
 import { createLogger, isDebugEnabled } from "../../platform/logger";
+import { installRavenPOI, resolvePoiNodeUrls } from "../poi/raven";
 
 const RAILGUN_DB_PATH = configDefaults.engine.databasePath;
 const RAILGUN_ARTIFACT_PATH = configDefaults.engine.artifactPath;
@@ -37,6 +39,10 @@ let railgunEngineRunning = false;
 export const isEngineRunning = () => {
   return railgunEngineRunning;
 };
+
+let enginePoiNodeURLs: string[] = [];
+/** The PPOI aggregator URLs the engine was started with. */
+export const getEnginePoiNodeURLs = () => enginePoiNodeURLs;
 
 // The SDK is chatty, so its info stream sits at debug: visible under
 // TW_LOG_LEVEL=debug, quiet otherwise. Its errors were previously reduced to
@@ -134,6 +140,8 @@ export const initRailgunEngine = async () => {
   if (isEngineRunning()) {
     return;
   }
+  // Owner-only: the database holds the wallets' encrypted data.
+  fs.mkdirSync(RAILGUN_DB_PATH, { recursive: true, mode: 0o700 });
   const engineDatabase = new LevelDOWN(RAILGUN_DB_PATH);
   const artifactStorage = createArtifactStore(RAILGUN_ARTIFACT_PATH);
   // Was hardcoded true, so the SDK produced debug output unconditionally and
@@ -141,7 +149,8 @@ export const initRailgunEngine = async () => {
   const shouldDebug = isDebugEnabled();
   const useNativeArtifacts = false;
   const skipMerkelTreeScans = false;
-  const poiNodeURLs = remoteConfig.publicPoiAggregatorUrls ?? [];
+  const poiNodeURLs = resolvePoiNodeUrls(remoteConfig.publicPoiAggregatorUrls ?? []);
+  enginePoiNodeURLs = poiNodeURLs;
   const customPOIList = undefined;
 
   await startRailgunEngine(
@@ -154,6 +163,8 @@ export const initRailgunEngine = async () => {
     poiNodeURLs,
     customPOIList,
   );
+  // Before any provider loads, so no scan reaches the stock interface first.
+  await installRavenPOI();
 
   getProver().setSnarkJSGroth16(groth16 as Groth16);
   setLoggers(interceptLog.log, interceptLog.error);

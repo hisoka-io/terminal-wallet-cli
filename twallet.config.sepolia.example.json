@@ -1,0 +1,22 @@
+{
+  "defaultNetwork": "EthereumSepolia",
+  "providers": {
+    "EthereumSepolia": [
+      "https://ethereum-sepolia.publicnode.com",
+      "https://sepolia.gateway.tenderly.co"
+    ]
+  },
+  "poiNodeUrls": ["https://ppoi.fdi.network"],
+  "raven": {
+    "enabled": true,
+    "wireLog": "raven-wire.jsonl",
+    "chains": [
+      {
+        "network": "EthereumSepolia",
+        "endpoint": "https://raven-sepolia-production.up.railway.app",
+        "aggregator": "https://ppoi.fdi.network",
+        "pathInstances": ["ppoi-paths-ofac-0", "ppoi-paths-ofac-1"]
+      }
+    ]
+  }
+}

@@ -16,11 +16,15 @@
  * Both exist permanently. `status` stays the fastest way to answer "is it the
  * wallet or is it the network" without reading a rendered screen, and `selftest`
  * stays the only boot check that needs no human.
+ *
+ * `--export-commitments <file>` boots as `status` does, then writes the wallets'
+ * blinded commitments for a wire observer's watch list (see ./commitments).
  */
 import { NetworkName } from "@railgun-community/shared-models";
 import { setInputProvider } from "../core/input";
 import { headlessInputProvider } from "./headless-input";
 import configDefaults from "../config/config-defaults";
+import { configuredDefaultNetwork } from "../config/config-manager";
 import { overrideMainConfig } from "../config/config-overrides";
 import { updateApiKey } from "../railgun/transaction/zeroX/0x-swap";
 import {
@@ -28,7 +32,10 @@ import {
   loadEngineProvidersForNetwork,
   getTreeHeight,
   isEngineRunning,
+  getEnginePoiNodeURLs,
 } from "../railgun/engine/engine";
+import { ravenSelftest } from "../railgun/poi/raven";
+import { exportRefusal, exportWalletCommitments } from "./commitments";
 import { initializeWalletSystems } from "../railgun/wallet/wallet-init";
 import {
   getCurrentWalletName,
@@ -90,6 +97,8 @@ const runSelftest = async (network: NetworkName): Promise<void> => {
     return `db ${configDefaults.engine.databasePath}`;
   });
 
+  await step("raven poi", async () => ravenSelftest(getEnginePoiNodeURLs()));
+
   await step("artifact store", async () => configDefaults.engine.artifactPath);
 
   await step("rpc providers", async () => {
@@ -98,11 +107,7 @@ const runSelftest = async (network: NetworkName): Promise<void> => {
   });
 };
 
-/**
- * A full boot plus a state dump. Prompts once for the password — it cannot be
- * automated, and deliberately so: see the CI note in the module header.
- */
-const runStatus = async (network: NetworkName): Promise<void> => {
+const bootWallet = async (network: NetworkName): Promise<boolean> => {
   await runSelftest(network);
 
   console.log("");
@@ -111,7 +116,15 @@ const runStatus = async (network: NetworkName): Promise<void> => {
     return getCurrentWalletName();
   });
 
-  if (results.some((r) => !r.ok)) {
+  return results.every((r) => r.ok);
+};
+
+/**
+ * A full boot plus a state dump. Prompts once for the password — it cannot be
+ * automated, and deliberately so: see the CI note in the module header.
+ */
+const runStatus = async (network: NetworkName): Promise<void> => {
+  if (!(await bootWallet(network))) {
     return;
   }
 
@@ -146,18 +159,36 @@ const runStatus = async (network: NetworkName): Promise<void> => {
   line("connection", isWakuConnected() ? "connected" : "disconnected");
 };
 
+/** The network twallet.config.json names, so the diagnostics check the chain the wallet runs on. */
+export const diagnosticNetwork = (): NetworkName =>
+  configuredDefaultNetwork() ?? configDefaults.engine.defaultChain;
+
 export const runDiagnostic = async (argv: string[]): Promise<number> => {
   // This host's answer to the input seam. Registered before any boot step, so
   // core never reaches an unregistered provider.
   setInputProvider(headlessInputProvider);
 
-  const network = configDefaults.engine.defaultChain;
-  const full = !argv.includes("--selftest");
+  const network = diagnosticNetwork();
+  const exportAt = argv.indexOf("--export-commitments");
 
-  if (full) {
-    await runStatus(network);
-  } else {
+  if (exportAt >= 0) {
+    const file = argv[exportAt + 1];
+    if (file === undefined || file.startsWith("--")) {
+      console.log("--export-commitments needs a file path");
+      return 2;
+    }
+    const refusal = exportRefusal(network);
+    if (refusal !== undefined) {
+      console.log(refusal);
+      return 2;
+    }
+    if (await bootWallet(network)) {
+      await step("export commitments", async () => exportWalletCommitments(network, file));
+    }
+  } else if (argv.includes("--selftest")) {
     await runSelftest(network);
+  } else {
+    await runStatus(network);
   }
 
   const failed = results.filter((r) => !r.ok);
